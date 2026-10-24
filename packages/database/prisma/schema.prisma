@@ -1,0 +1,199 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// enum Role {
+//   CUSTOMER
+//   VENDOR
+//   ADMIN
+// }
+
+// enum OrderStatus {
+//   PENDING
+//   PROCESSING
+//   SHIPPED
+//   DELIVERED
+//   CANCELLED
+// }
+
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String     @default("CUSTOMER")
+  avatarUrl     String?
+  coverImageUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer  Customer?
+  vendor    Vendor?
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  bio       String?
+  addresses Address[]
+  orders    Order[]
+  reviews   Review[]
+  cart      Cart?
+  wishlist  Wishlist?
+}
+
+model Vendor {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  storeName   String
+  bio         String?
+  user        User      @relation(fields: [userId], references: [id])
+  products    Product[]
+  orders      Order[]   @relation("VendorOrders") // Many to many via OrderItems actually? 
+  // Simplified: Vendors might fulfill specific items, but for now let's link Orders to Vendors if appropriate or just via items.
+  // The prompt says "VENDORS fulfill ORDER_ITEMS", so better to link OrderItem to Vendor possibly?
+  // Or simply, an Order belongs to one Vendor? Usually marketplaces have multi-vendor orders.
+  // Let's stick to prompt: "VENDORS fulfill ORDER_ITEMS".
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  street      String
+  city        String
+  state       String
+  zip         String
+  country     String
+  createdAt   DateTime @default(now())
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  vendorId    String
+  vendor      Vendor      @relation(fields: [vendorId], references: [id])
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  name        String
+  description String
+  price       Float
+  stock       Int
+  images      String // JSON string or comma separated
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  reviews     Review[]
+  wishlistItems WishlistItem[]
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  total       Float
+  status      String @default("PENDING")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  items       OrderItem[]
+  payment     Payment?
+  shipment    Shipment?
+  
+  // If supporting multi-vendor orders, we don't link Order directly to Vendor usually, but we can verify later.
+  // Prompt says: VENDORS fulfill ORDER_ITEMS.
+  
+  vendorId    String? 
+  vendor      Vendor?     @relation("VendorOrders", fields: [vendorId], references: [id]) // Optional: if simple single-vendor order
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model Cart {
+  id         String     @id @default(uuid())
+  customerId String     @unique
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  items      CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+}
+
+model Wishlist {
+  id         String         @id @default(uuid())
+  customerId String         @unique
+  customer   Customer       @relation(fields: [customerId], references: [id])
+  items      WishlistItem[]
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  amount    Float
+  method    String
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Shipment {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  trackingCode  String?
+  carrier       String?
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+}
