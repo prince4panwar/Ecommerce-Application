@@ -1,8 +1,15 @@
 import { Router } from "express";
-import { getProducts, getProductById, createProduct, updateProduct, deleteProduct, bulkCreateProducts } from "../controllers/product.controller";
+import {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  bulkCreateProducts,
+} from "../controllers/product.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
-const router = Router();
+const router: Router = Router();
 
 router.get("/", getProducts);
 router.get("/:id", getProductById);
@@ -12,4 +19,3 @@ router.put("/:id", authenticate, updateProduct);
 router.delete("/:id", authenticate, deleteProduct);
 
 export default router;
-

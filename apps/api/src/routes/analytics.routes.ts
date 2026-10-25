@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getVendorAnalytics } from "../controllers/analytics.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
-const router = Router();
+const router: Router = Router();
 
 router.get("/vendor", authenticate, getVendorAnalytics);
 

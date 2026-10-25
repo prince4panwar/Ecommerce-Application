@@ -1,8 +1,15 @@
 import { Router } from "express";
-import { getProfile, updateProfile, addAddress, deleteProfile, updateAddress, deleteAddress } from "../controllers/user.controller";
+import {
+  getProfile,
+  updateProfile,
+  addAddress,
+  deleteProfile,
+  updateAddress,
+  deleteAddress,
+} from "../controllers/user.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
-const router = Router();
+const router: Router = Router();
 
 router.get("/profile", authenticate, getProfile);
 router.put("/profile", authenticate, updateProfile);
